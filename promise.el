@@ -109,23 +109,14 @@
 (defun p-all-features (&rest features)
   "Creates a promise that is fulfilled when all features are loaded.
    Useful when loading packages with dependencies and the reason this library is done"
-  (p-all (mapcar
-          (lambda (feature)
-            (p-make-promise
-             (lambda (fulfiller _)
-               (eval-after-load feature
-                 (progn
-                   (funcall fulfiller feature))))))
-          features)))
-
-
-(defmacro p-on-features (features &rest body )
-  "A short macro to ease the use of using p-all-features"
-  `(p-then
-    (apply #'p-all-features ,features)
-    (lambda (loaded-features)
-      ,@body
-      )))
+  (apply #'p-all (mapcar
+                  (lambda (feature)
+                    (p-make-promise
+                     (lambda (fulfiller _)
+                       (eval-after-load feature
+                         (when (featurep feature)
+                           (funcall fulfiller feature))))))
+                  features)))
 
 
 (provide 'promise)

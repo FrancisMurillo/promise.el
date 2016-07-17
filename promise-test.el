@@ -92,13 +92,25 @@
               (should (eq 'right reason))))))
 
 
+(ert-deftest promise-all-forever ()
+  (lexical-let* ((left-operation
+                  (p-make-promise
+                   (lambda (res rej)
+                     (funcall res 'left))))
+                 (right-operation
+                  (p-make-promise
+                   (lambda (res rej)
+                     nil))))
+    (should (eq 'fulfilled (p-state left-operation)))
+    (should (eq 'pending (p-state right-operation)))
+    (p-then (p-all left-operation right-operation)
+            (lambda (values)
+              (should-not values))
+            (lambda (reason)
+              (should-not reason)))))
+
 (ert-deftest promise-all-features ()
   (p-then
    (p-all-features 'ert 'promise)
    (lambda (_)
      (should t))))
-
-
-(ert-deftest promise-on-features ()
-  (p-on-features '(ert promise)
-                 (should t)))
