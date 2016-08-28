@@ -45,7 +45,6 @@
 ;;
 ;;; Code:
 
-(require 'dash)
 (require 'cl-lib)
 
 
@@ -61,7 +60,7 @@
 
 ;;* Interface
 (defun p-make-promise (executor)
-  "Create a promise that is handled by an EXECUTOR.."
+  "Create a promise that is handled by an EXECUTOR."
   (lexical-let* ((promised nil)
       (run-hooks
        (lambda ()
