@@ -92,7 +92,63 @@
     (funcall resolver delayed-value)
     (should (eq 'fulfilled (promise--state operation)))
     (promise-then (lambda (the-value)
-              (shotuld (eq delayed-value the-value))))))
+                    (shotuld (eq delayed-value the-value))))))
+
+(ert-deftest promise-then-chain ()
+  (letrec
+      ((first-value 1)
+       (first nil)
+       (second nil)
+       (third nil)
+       (first-trigger nil)
+       (first-part
+        (promise
+         (lambda (res _)
+           (setq first t
+                 first-trigger res))))
+       (second-trigger nil)
+       (second-value nil)
+       (second-part
+        (promise-then
+         first-part
+         (lambda (value)
+           (setq second t
+                 second-value (1+ value))
+           (promise
+            (lambda (res _)
+              (setq second-trigger res))))))
+       (third-trigger nil)
+       (third-value nil)
+       (third-part
+        (promise-then
+         second-part
+         (lambda (value)
+           (setq third t
+                 third-value (1+ value))
+           (promise
+            (lambda (res _)
+              (setq third-trigger res)))))))
+    (should (eq first t))
+    (should (null second))
+    (should (null third))
+
+    (funcall first-trigger first-value)
+
+    (should (eq second t))
+    (should (null third))
+    (should (= (1+ first-value) second-value))
+
+    (funcall second-trigger second-value)
+
+    (should (eq third t))
+    (should (= (1+ second-value) third-value))
+
+    (funcall third-trigger third-value)
+
+    (promise-then
+     third-part
+     (lambda (value)
+       (should (= third-value third-value))))))
 
 
 (ert-deftest promise-all-fulfilled ()
