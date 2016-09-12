@@ -49,17 +49,17 @@
 
 
 ;;* Private
-(defun p--promise (state &optional value fulfilled-hooks rejected-hooks)
+(defun promise--make (state &optional value fulfilled-hooks rejected-hooks)
   "Create a promise with STATE, VALUE, FULFILLED-HOOKS and REJECTED-HOOKS."
   (list state value fulfilled-hooks rejected-hooks))
 
-(defun p--state (promise)
+(defun promise--state (promise)
   "Get the state of a PROMISE, not to be used externally.  Mainly for unit testing."
   (car promise))
 
 
 ;;* Interface
-(defun p-make-promise (executor)
+(defun promise (executor)
   "Create a promise that is handled by an EXECUTOR."
   (lexical-let* ((promised nil)
       (run-hooks
@@ -88,13 +88,13 @@
              (setf (nth 1 promised) reason)
              (unless in-context
                (funcall run-hooks)))))))
-    (setq promised (p--promise 'pending nil (list) (list)))
+    (setq promised (promise--make 'pending nil (list) (list)))
     (funcall executor fulfiller rejector)
     (setq in-context nil)
     (funcall run-hooks)
     promised))
 
-(defun p-promise-p (value)
+(defun promise-p (value)
   "Check if VALUE is a promise."
   (pcase value
     (`(`pending `nil ,_ ,_) t)
@@ -102,7 +102,7 @@
     (`(`rejected ,_ ,_ ,_) t)
     (_ nil)))
 
-(defun p-then (promise &optional fulfilled rejected)
+(defun promise-then (promise &optional fulfilled rejected)
   "Add a hook into a PROMISE with FULFILLED and REJECTED resolution."
   (pcase-let ((`(,state ,promise-value ,fulfilled-hooks ,rejected-hooks) promise))
     (pcase state
@@ -118,9 +118,9 @@
   promise)
 
 
-(defun p-all (&rest promises)
+(defun promise-all (&rest promises)
   "Create a promise that is fulfilled when all PROMISES are fulfilled and rejected when any of it is rejected."
-  (p-make-promise
+  (promise
    (lambda (fulfiller rejector)
      (lexical-let* ((fulfiller fulfiller)
          (rejector rejector)
@@ -137,7 +137,7 @@
             (funcall rejector reason))))
        (-map-indexed (lambda (index promise)
                        (lexical-let ((index index))
-                         (p-then promise
+                         (promise-then promise
                                  (lambda (value)
                                    (funcall all-fulfilled value index))
                                  (lambda (reason)
@@ -145,11 +145,11 @@
                      promises)))))
 
 
-(defun p-all-features (&rest features)
+(defun promise-all-features (&rest features)
   "Create a promise that is fulfilled when all FEATURES are loaded.  Useful when loading packages with dependencies and the reason this library is done."
-  (apply #'p-all (mapcar
+  (apply #'promise-all (mapcar
               (lambda (feature)
-                (p-make-promise
+                (promise
                  (lambda (fulfiller _)
                    (eval-after-load feature
                      (when (featurep feature)
